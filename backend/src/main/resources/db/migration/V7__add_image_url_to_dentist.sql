@@ -1,0 +1,1 @@
+ALTER TABLE dentist ADD COLUMN image_url TEXT

@@ -1,0 +1,2 @@
+ALTER TABLE appointment ALTER COLUMN image_url TYPE TEXT;
+ALTER TABLE patient ALTER COLUMN image_url TYPE TEXT;
