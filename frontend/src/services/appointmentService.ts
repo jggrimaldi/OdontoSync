@@ -63,6 +63,13 @@ export const appointmentService = {
     return response.data;
   },
 
+  reopen: async (id: string): Promise<AppointmentResponse> => {
+    const response = await api.patch<AppointmentResponse>(
+      `/consultas/${id}/reabrir`,
+    );
+    return response.data;
+  },
+
   delete: async (id: string): Promise<void> => {
     await api.delete(`/consultas/${id}`);
   },

@@ -37,17 +37,6 @@ public class GlobalExceptionHandler {
                 ));
     }
 
-    @ExceptionHandler(StatusNotPendingException.class)
-    public ResponseEntity<Map<String, Object>> handleStatusPending(StatusNotPendingException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(Map.of(
-                        "timestamp", LocalDateTime.now(),
-                        "status", 400,
-                        "error", "Bad Request",
-                        "message", ex.getMessage()
-                ));
-    }
-
     @ExceptionHandler(DuplicateCpfException.class)
     public ResponseEntity<Map<String, Object>> handleDuplicateCpf(DuplicateCpfException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)

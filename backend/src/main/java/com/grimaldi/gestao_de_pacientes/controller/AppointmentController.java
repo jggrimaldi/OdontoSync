@@ -115,6 +115,15 @@ public class AppointmentController {
         return ResponseEntity.ok(appointmentService.cancelAppointment(appointmentId));
     }
 
+    @PatchMapping("/{appointmentId}/reabrir")
+    @Operation(summary = "Reabrir consulta (voltar status para Pendente)")
+    @ApiResponse(responseCode = "200", description = "Atualização feita com sucesso")
+    @ApiResponse(responseCode = "404", description = "Não foi encontrado")
+    @ApiResponse(responseCode = "403", description = "Tentando acessar a consulta de outro Dentista")
+    public ResponseEntity<AppointmentResponse> reopenAppointment(@PathVariable UUID appointmentId) {
+        return ResponseEntity.ok(appointmentService.reopenAppointment(appointmentId));
+    }
+
     @DeleteMapping("/{appointmentId}")
     @Operation(summary = "Deletar consulta")
     @ApiResponse(responseCode = "204", description = "Excluido com sucesso")
