@@ -224,7 +224,7 @@ export default function PacientesPage() {
               )}
 
               {loading === false && error == null && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {filtered.length === 0 && (
                     <div className="text-center py-20 text-gray-300 col-span-full">
                       <svg className="mx-auto mb-4" width="44" height="44" fill="none" viewBox="0 0 24 24">
