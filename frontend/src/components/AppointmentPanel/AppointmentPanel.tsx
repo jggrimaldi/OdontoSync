@@ -51,7 +51,6 @@ export default function AppointmentPanel({
   const [loading, setLoading] = useState(true);
   const [savingDetails, setSavingDetails] = useState(false);
   const [savingNotes, setSavingNotes] = useState(false);
-  const [savingStatus, setSavingStatus] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [appointment, setAppointment] = useState<AppointmentResponse | null>(
@@ -124,11 +123,23 @@ export default function AppointmentPanel({
     try {
       setSavingDetails(true);
       setError(null);
-      const updated = await appointmentService.update(appointment.id, {
+
+      let updated = await appointmentService.update(appointment.id, {
         title: formData.title.trim(),
         date: formData.date,
       });
+
+      if (formData.status !== appointment.status) {
+        updated =
+          formData.status === "FINISHED"
+            ? await appointmentService.finish(appointment.id)
+            : formData.status === "CANCELED"
+              ? await appointmentService.cancel(appointment.id)
+              : await appointmentService.reopen(appointment.id);
+      }
+
       setAppointment(updated);
+      setFormData((prev) => ({ ...prev, status: updated.status }));
       onUpdated?.(updated);
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, "Erro ao salvar detalhes."));
@@ -137,36 +148,8 @@ export default function AppointmentPanel({
     }
   }
 
-  async function handleStatusChange(nextStatus: AppointmentStatus) {
-    if (!appointment) return;
-    if (nextStatus === appointment.status) return;
-
-    if (appointment.status !== "PENDING") {
-      setError("Só é possível alterar o status enquanto a consulta estiver Pendente.");
-      return;
-    }
-
-    // Backend atual só tem rotas para finalizar e cancelar.
-    if (nextStatus === "PENDING") {
-      setError("O backend não tem endpoint para voltar o status para Pendente.");
-      return;
-    }
-
-    try {
-      setSavingStatus(true);
-      setError(null);
-      const updated =
-        nextStatus === "FINISHED"
-          ? await appointmentService.finish(appointment.id)
-          : await appointmentService.cancel(appointment.id);
-      setAppointment(updated);
-      setFormData((prev) => ({ ...prev, status: updated.status }));
-      onUpdated?.(updated);
-    } catch (err: unknown) {
-      setError(getApiErrorMessage(err, "Erro ao atualizar status."));
-    } finally {
-      setSavingStatus(false);
-    }
+  function handleStatusChange(nextStatus: AppointmentStatus) {
+    setFormData((prev) => ({ ...prev, status: nextStatus }));
   }
 
   async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -290,7 +273,7 @@ export default function AppointmentPanel({
                               e.target.value as AppointmentStatus,
                             )
                           }
-                          disabled={savingStatus || appointment.status !== "PENDING"}
+                          disabled={savingDetails}
                           className="w-full px-4 py-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl text-sm text-gray-700 focus:outline-none focus:bg-white focus:border-pink-300 focus:ring-2 focus:ring-pink-50 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                           {statusOptions.map((opt) => (
@@ -312,7 +295,7 @@ export default function AppointmentPanel({
                     <button
                       type="button"
                       onClick={handleSaveDetails}
-                      disabled={savingDetails || savingStatus}
+                      disabled={savingDetails}
                       className="sm:w-44 py-2.5 bg-pink-400 hover:bg-pink-500 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm disabled:opacity-60 flex items-center justify-center gap-2"
                     >
                       {savingDetails ? (

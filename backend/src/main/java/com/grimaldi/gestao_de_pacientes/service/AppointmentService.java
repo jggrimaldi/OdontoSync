@@ -14,7 +14,6 @@ import com.grimaldi.gestao_de_pacientes.repository.AppointmentRepository;
 import com.grimaldi.gestao_de_pacientes.repository.DentistRepository;
 import com.grimaldi.gestao_de_pacientes.repository.PatientRepository;
 import com.grimaldi.gestao_de_pacientes.service.validation.CreateAppointmentValidation;
-import com.grimaldi.gestao_de_pacientes.service.validation.StatusPendingValidation;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
@@ -29,15 +28,13 @@ import java.util.UUID;
 public class AppointmentService {
 
     private final List<CreateAppointmentValidation> createAppointmentValidations;
-    private final List<StatusPendingValidation> statusPendingValidations;
     private final AppointmentRepository appointmentRepository;
     private final PatientRepository patientRepository;
     private final DentistRepository dentistRepository;
     private final PatientService patientService;
 
-    public AppointmentService(List<CreateAppointmentValidation> createAppointmentValidations, List<StatusPendingValidation> statusPendingValidations, AppointmentRepository appointmentRepository, PatientRepository patientRepository, DentistService dentistService, DentistRepository dentistRepository, PatientService patientService) {
+    public AppointmentService(List<CreateAppointmentValidation> createAppointmentValidations, AppointmentRepository appointmentRepository, PatientRepository patientRepository, DentistService dentistService, DentistRepository dentistRepository, PatientService patientService) {
         this.createAppointmentValidations = createAppointmentValidations;
-        this.statusPendingValidations = statusPendingValidations;
         this.appointmentRepository = appointmentRepository;
         this.patientRepository = patientRepository;
         this.dentistRepository = dentistRepository;
@@ -160,8 +157,6 @@ public class AppointmentService {
 
         validateOwnership(appointment);
 
-        statusPendingValidations.forEach(v -> v.validate(appointment));
-
         appointment.setStatus(AppointmentStatus.FINISHED);
         return new AppointmentResponse(appointmentRepository.save(appointment));
     }
@@ -173,9 +168,18 @@ public class AppointmentService {
 
         validateOwnership(appointment);
 
-        statusPendingValidations.forEach(v -> v.validate(appointment));
-
         appointment.setStatus(AppointmentStatus.CANCELED);
+        return new AppointmentResponse(appointmentRepository.save(appointment));
+    }
+
+    @Transactional
+    public AppointmentResponse reopenAppointment(UUID appointmentId) {
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new IdNotExistException("Id não encontrado"));
+
+        validateOwnership(appointment);
+
+        appointment.setStatus(AppointmentStatus.PENDING);
         return new AppointmentResponse(appointmentRepository.save(appointment));
     }
 
