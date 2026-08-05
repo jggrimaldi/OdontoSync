@@ -49,8 +49,7 @@ export default function AppointmentPanel({
   onUpdated,
 }: AppointmentPanelProps) {
   const [loading, setLoading] = useState(true);
-  const [savingDetails, setSavingDetails] = useState(false);
-  const [savingNotes, setSavingNotes] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [appointment, setAppointment] = useState<AppointmentResponse | null>(
@@ -117,37 +116,6 @@ export default function AppointmentPanel({
     setFormData((prev) => ({ ...prev, [name]: value }));
   }
 
-  async function handleSaveDetails() {
-    if (!appointment) return;
-
-    try {
-      setSavingDetails(true);
-      setError(null);
-
-      let updated = await appointmentService.update(appointment.id, {
-        title: formData.title.trim(),
-        date: formData.date,
-      });
-
-      if (formData.status !== appointment.status) {
-        updated =
-          formData.status === "FINISHED"
-            ? await appointmentService.finish(appointment.id)
-            : formData.status === "CANCELED"
-              ? await appointmentService.cancel(appointment.id)
-              : await appointmentService.reopen(appointment.id);
-      }
-
-      setAppointment(updated);
-      setFormData((prev) => ({ ...prev, status: updated.status }));
-      onUpdated?.(updated);
-    } catch (err: unknown) {
-      setError(getApiErrorMessage(err, "Erro ao salvar detalhes."));
-    } finally {
-      setSavingDetails(false);
-    }
-  }
-
   function handleStatusChange(nextStatus: AppointmentStatus) {
     setFormData((prev) => ({ ...prev, status: nextStatus }));
   }
@@ -171,24 +139,44 @@ export default function AppointmentPanel({
     setUploadedImages((prev) => prev.filter((_, i) => i !== index));
   }
 
-  async function handleSaveNotes() {
+  async function handleSave() {
     if (!appointment) return;
 
     try {
-      setSavingNotes(true);
+      setSaving(true);
       setError(null);
+
+      let updated = await appointmentService.update(appointment.id, {
+        title: formData.title.trim(),
+        date: formData.date,
+      });
+
+      if (formData.status !== appointment.status) {
+        updated =
+          formData.status === "FINISHED"
+            ? await appointmentService.finish(appointment.id)
+            : formData.status === "CANCELED"
+              ? await appointmentService.cancel(appointment.id)
+              : await appointmentService.reopen(appointment.id);
+      }
+
       const firstImage = uploadedImages[0]?.dataUrl ?? null;
-      const updated = await appointmentService.updateNotes(appointment.id, {
+      updated = await appointmentService.updateNotes(appointment.id, {
         notes: formData.notes,
         imageUrl: firstImage,
       });
+
       setAppointment(updated);
-      setFormData((prev) => ({ ...prev, notes: updated.notes ?? "" }));
+      setFormData((prev) => ({
+        ...prev,
+        status: updated.status,
+        notes: updated.notes ?? "",
+      }));
       onUpdated?.(updated);
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err, "Erro ao salvar notas."));
+      setError(getApiErrorMessage(err, "Erro ao salvar consulta."));
     } finally {
-      setSavingNotes(false);
+      setSaving(false);
     }
   }
 
@@ -260,53 +248,35 @@ export default function AppointmentPanel({
                     </div>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row gap-3 mt-4 sm:items-end">
-                    <div className="flex-1">
-                      <label className="text-sm font-semibold text-gray-600">
-                        Status
-                      </label>
-                      <div className="mt-1.5 relative">
-                        <select
-                          value={formData.status}
-                          onChange={(e) =>
-                            handleStatusChange(
-                              e.target.value as AppointmentStatus,
-                            )
-                          }
-                          disabled={savingDetails}
-                          className="w-full px-4 py-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl text-sm text-gray-700 focus:outline-none focus:bg-white focus:border-pink-300 focus:ring-2 focus:ring-pink-50 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                        >
-                          {statusOptions.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="mt-2">
-                        <span
-                          className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[appointment.status]}`}
-                        >
-                          {formatStatus(appointment.status)}
-                        </span>
-                      </div>
+                  <div className="mt-4">
+                    <label className="text-sm font-semibold text-gray-600">
+                      Status
+                    </label>
+                    <div className="mt-1.5 relative">
+                      <select
+                        value={formData.status}
+                        onChange={(e) =>
+                          handleStatusChange(
+                            e.target.value as AppointmentStatus,
+                          )
+                        }
+                        disabled={saving}
+                        className="w-full px-4 py-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl text-sm text-gray-700 focus:outline-none focus:bg-white focus:border-pink-300 focus:ring-2 focus:ring-pink-50 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        {statusOptions.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
                     </div>
-
-                    <button
-                      type="button"
-                      onClick={handleSaveDetails}
-                      disabled={savingDetails}
-                      className="sm:w-44 py-2.5 bg-pink-400 hover:bg-pink-500 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm disabled:opacity-60 flex items-center justify-center gap-2"
-                    >
-                      {savingDetails ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                          Salvando...
-                        </>
-                      ) : (
-                        "Salvar detalhes"
-                      )}
-                    </button>
+                    <div className="mt-2">
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[appointment.status]}`}
+                      >
+                        {formatStatus(appointment.status)}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="mt-6">
@@ -378,23 +348,23 @@ export default function AppointmentPanel({
                         type="button"
                         onClick={onClose}
                         className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600"
-                        disabled={savingNotes}
+                        disabled={saving}
                       >
                         Fechar
                       </button>
                       <button
                         type="button"
-                        onClick={handleSaveNotes}
-                        disabled={savingNotes}
+                        onClick={handleSave}
+                        disabled={saving}
                         className="px-4 py-2 bg-pink-400 text-white rounded-lg text-sm hover:bg-pink-500 disabled:opacity-60 flex items-center justify-center gap-2"
                       >
-                        {savingNotes ? (
+                        {saving ? (
                           <>
                             <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
                             Salvando...
                           </>
                         ) : (
-                          "Salvar notas"
+                          "Salvar"
                         )}
                       </button>
                     </div>
